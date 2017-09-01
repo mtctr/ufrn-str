@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sched.h>
+#include <unistd.h>
+#include <signal.h>
+int main(){
+
+  int meu_pid;
+  int pid_vitima, opcao;
+	cpu_set_t  mask;
+	int cpu_target;
+  meu_pid = getpid();
+    
+  
+ printf( "Eu sou um programa matador de programa meu PID é %d\n", meu_pid );
+ printf( "Digite um PID: ");
+ scanf( "%d", &pid_vitima);
+ while(1)
+ printf("O que deseja fazer? \n1 - matar \n2 - parar \n3 - continuar\n4 - trocar cpu\n"); 
+
+ scanf("%d", &opcao);
+
+ switch (opcao){
+	case 1:
+	 printf("\n Vou matar o processo %d \n", pid_vitima);
+	 kill(pid_vitima, SIGKILL);
+	case 2:
+	 printf("\n Vou parar o processo %d \n", pid_vitima);
+	 kill(pid_vitima, SIGSTOP);
+  case 3:
+	 printf("\n Vou resumir o processo %d \n", pid_vitima);
+	 kill(pid_vitima, SIGCONT);	
+	case 4:
+	 printf("\nDigite a cpu que vc quer\n");
+	 scanf("%d",&cpu_target);
+	 printf("\nTrocando a cpu do processo %d \n", pid_vitima);
+ 	 CPU_ZERO(&mask);
+	 CPU_SET(cpu_target, &mask);
+	 sched_setaffinity(pid_vitima, sizeof(mask), &mask);
+ }	
+
+}

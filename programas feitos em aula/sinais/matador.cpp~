@@ -1,0 +1,52 @@
+// UFRN-CT-DCA
+// Disciplina: Sistemas Operacionais
+// Programa matatdor.cpp
+// Sinais sã eventos gerados pelo Unix em resposta a algumas condições, como:
+//  erros, violação de memória, instrução ilegal, ...
+
+#include <signal.h> // definição dos sinais de interrupções
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h> // system()
+
+//SIGKILL
+//SIGCONT
+//SIGSTOP
+
+int  main()
+{
+  // o processo que vai matar
+
+  int meu_pid;
+  int pid_vitima, opcao;
+
+  meu_pid = getpid();
+    
+  
+ printf( "Eu sou um programa matador de programa meu PID é %d\n", meu_pid );
+ printf( "Digite um PID: ");
+ scanf( "%d", &pid_vitima);
+ 
+ printf("O que deseja fazer? \n1 - matar \n2 - parar \n3 - continuar\n"); 
+
+ scanf("%d", &opcao);
+
+ switch (opcao){
+	case 1:
+	 printf("\n Vou matar o processo %d \n", pid_vitima);
+	 kill(pid_vitima, SIGKILL);
+	case 2:
+	 printf("\n Vou parar o processo %d \n", pid_vitima);
+	 kill(pid_vitima, SIGSTOP);
+	}
+	
+
+ printf( "\nAgora posso morrer tranquilo.\n");
+ exit(0);
+}
+
+
+
+
+
+
