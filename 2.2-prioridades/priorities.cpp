@@ -10,25 +10,24 @@
 
 using namespace BlackLib;
 
-void carga(int k)
-{
+void carga(){
+  struct timeval tstart, tend;
+  gettimeofday(&tstart, NULL);
   float f = 0.999999;
-  for(int i=0; i<k; i++)
-    {
-      f = f*f*f*f*f;
-      f = 1.56;
-        for(int j=0; j<k; j++)
-           {
-	     f = sin(f)*sin(f)*f*f*f;
-
-            }
-    }
-
+  float c = 1;
+  while(tend.tv_sec - tstart.tv_sec < 1){
+    c *= c;
+    f = f*f*f*f*f*c;
+    f = 1.56;
+    f = sin(f)*sin(f)*f*f*f*c;
+    gettimeofday(&tend, NULL);
+  }
 }
+
 
 int main(int argc, char * argv[]){
   double v0,v1;
-  struct timeval tstart, tend;
+
 
   //seta a prioridade do processo pai para 0
   setpriority(PRIO_PROCESS, getpid(), 0);
@@ -50,11 +49,10 @@ int main(int argc, char * argv[]){
   while(true){
     v0 = adc0.getFloatValue();
     v1 = adc1.getFloatValue();
-    std::cout<<v0<<endl;
-    std::cout<<v1<<endl;
+    std::cout<<"v0 "<<v0<<endl;
+    std::cout<<"v1 "<<v1<<endl;
 
     if(pfilho1==0){/* acoes do filho 1*/
-      std::cout<<"filho1 "<<getpid()<<endl;
       if(v0>1.0){
         //seta a prioridade do processo filho 1 para 5
         setpriority(PRIO_PROCESS, getpid(), 5);
@@ -62,39 +60,40 @@ int main(int argc, char * argv[]){
         //seta a prioridade do processo filho 1 para 19
         setpriority(PRIO_PROCESS, getpid(), 19);
       }
-      gettimeofday(&tstart, NULL);
-      while(tend.tv_sec - tstart.tv_sec < 1){
+
+      while(cont<50){
+        std::cout<<"filho1 "<<getpid()<<endl;
         cont++;
-        carga(50);
+        carga();
         if(cont%2 == 0){
           led1.setValue(high);
         }else{
           led1.setValue(low);
         }
-        gettimeofday(&tend, NULL);
       }
       cont = 0;
 
     }
     if(pfilho2==0){/* acoes do filho 2*/
-      std::cout<<"filho2 "<<getpid()<<endl;
       if(v1>1.0){
         //seta a prioridade do processo filho 2 para 5
         setpriority(PRIO_PROCESS, getpid(), 5);
+        //std::cout << "valor da prioridade do processo: " << getpriority(PRIO_PROCESS, getpid()) <<endl;
       }else{
         //seta a prioridade do processo filho 1 para 19
         setpriority(PRIO_PROCESS, getpid(), 19);
+        //std::cout << "valor da prioridade do processo: " << getpriority(PRIO_PROCESS, getpid()) <<endl;
       }
-      gettimeofday(&tstart, NULL);
-      while(tend.tv_sec - tstart.tv_sec < 1){
+
+      while(cont<50){
+        std::cout<<"filho2 "<<getpid()<<endl;
         cont++;
-        carga(50);
+        carga();
         if(cont%2 == 0){
           led2.setValue(high);
         }else{
           led2.setValue(low);
         }
-        gettimeofday(&tend, NULL);
       }
       cont = 0;
     }
