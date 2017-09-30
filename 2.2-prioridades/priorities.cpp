@@ -6,31 +6,28 @@
 #include <sys/time.h>     // getpriority(int which, int who)  setpriority(int which, int who, int prio);
 #include <sys/resource.h>
 #include <math.h>
+#include <errno.h>
 
 
 using namespace BlackLib;
 
-void carga(){
-  struct timeval tstart, tend;
-  gettimeofday(&tstart, NULL);
+void carga(int k){
   float f = 0.999999;
-  float c = 1;
-  while(tend.tv_sec - tstart.tv_sec < 1){
-    c *= c;
-    f = f*f*f*f*f*c;
+  for(int i=0; i<k; i++)
+  {
+    f = f*f*f*f*f;
     f = 1.56;
-    f = sin(f)*sin(f)*f*f*f*c;
-    gettimeofday(&tend, NULL);
+    for(int j=0; j<k; j++)
+    {
+      f = sin(f)*sin(f)*f*f*f;
+
+    }
   }
 }
 
 
 int main(int argc, char * argv[]){
-  double v0,v1;
-
-
-  //seta a prioridade do processo pai para 0
-  setpriority(PRIO_PROCESS, getpid(), 0);
+  float v0,v1;
 
   ADC adc0(AINx::AIN0);
   ADC adc1(AINx::AIN1);
@@ -39,68 +36,72 @@ int main(int argc, char * argv[]){
   led1.setValue(low); //blue
   led2.setValue(low); //red
 
-
-
   int pfilho1, pfilho2, cont;
 
   pfilho1=fork(); /* criacao do filho 1 */
-  pfilho2=fork(); /* criacao do filho 2 */
   cont = 0;
-  while(true){
-    v0 = adc0.getFloatValue();
-    v1 = adc1.getFloatValue();
-    std::cout<<"v0 "<<v0<<endl;
-    std::cout<<"v1 "<<v1<<endl;
 
-    if(pfilho1==0){/* acoes do filho 1*/
-      if(v0>1.0){
-        //seta a prioridade do processo filho 1 para 5
-        setpriority(PRIO_PROCESS, getpid(), 5);
+  if(pfilho1==0){/* acoes do filho 1*/
+
+    while(true){
+      std::cout<<"filho1 "<<getpid()<<endl;
+      std::cout << "valor da prioridade do processo 1: " << getpriority(PRIO_PROCESS, pfilho1) <<endl;
+      cont++;
+      carga(1200);
+      if(cont%2 == 0){
+        led1.setValue(high);
       }else{
-        //seta a prioridade do processo filho 1 para 19
-        setpriority(PRIO_PROCESS, getpid(), 19);
+        led1.setValue(low);
       }
-
-      while(cont<50){
-        std::cout<<"filho1 "<<getpid()<<endl;
-        cont++;
-        carga();
-        if(cont%2 == 0){
-          led1.setValue(high);
-        }else{
-          led1.setValue(low);
-        }
-      }
-      cont = 0;
-
     }
-    if(pfilho2==0){/* acoes do filho 2*/
-      if(v1>1.0){
-        //seta a prioridade do processo filho 2 para 5
-        setpriority(PRIO_PROCESS, getpid(), 5);
-        //std::cout << "valor da prioridade do processo: " << getpriority(PRIO_PROCESS, getpid()) <<endl;
-      }else{
-        //seta a prioridade do processo filho 1 para 19
-        setpriority(PRIO_PROCESS, getpid(), 19);
-        //std::cout << "valor da prioridade do processo: " << getpriority(PRIO_PROCESS, getpid()) <<endl;
-      }
 
-      while(cont<50){
+  }else{
+    pfilho2=fork(); /* criacao do filho 2 */
+
+    if(pfilho2==0){/* acoes do filho 2*/
+
+      while(true){
         std::cout<<"filho2 "<<getpid()<<endl;
+        std::cout << "valor da prioridade do processo 2: " << getpriority(PRIO_PROCESS, pfilho2) <<endl;
         cont++;
-        carga();
+        carga(1200);
         if(cont%2 == 0){
           led2.setValue(high);
         }else{
           led2.setValue(low);
         }
       }
-      cont = 0;
     }
-
-    sleep(0.5);
   }
 
-  exit(0);
+  while(true){ /* ações do pai*/
+    //seta a prioridade do processo pai para 0
+    setpriority(PRIO_PROCESS, 0, 0);
+
+    v0 = adc0.getFloatValue();
+    v1 = adc1.getFloatValue();
+    //std::cout<<"v0 "<<v0<<endl;
+    //std::cout<<"v1 "<<v1<<endl;
+    if(v0>=1.0){
+      //seta a prioridade do processo filho 1 para 5
+      setpriority(PRIO_PROCESS, pfilho1, 5);
+      //std::cout<<"SetPriority: "<<strerror(errno)<<endl;
+    }else if (v0<1.0){
+      //seta a prioridade do processo filho 1 para 19
+      setpriority(PRIO_PROCESS, pfilho1, 19);
+      //std::cout<<"SetPriority: "<<strerror(errno)<<endl;
+    }
+    if(v1>=1.0){
+      //seta a prioridade do processo filho 2 para 5
+      setpriority(PRIO_PROCESS, pfilho2, 5);
+      //std::cout<<"SetPriority: "<<strerror(errno)<<endl;
+    }else if(v1<1.0){
+      //seta a prioridade do processo filho 1 para 19
+      setpriority(PRIO_PROCESS, pfilho2, 19);
+      //std::cout<<"SetPriority: "<<strerror(errno)<<endl;
+    }
+    usleep(500000);
+  }
+
   return 0;
 }
