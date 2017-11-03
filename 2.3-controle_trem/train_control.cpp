@@ -50,9 +50,12 @@ BlackGPIO F2(GPIO_45, output);
 BlackGPIO G2(GPIO_66, output);
 
 pthread_mutex_t trilho3_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_t thread1, thread2;
+
 
 float v1;
 float v2;
+std::string val = bt.getValue();;
 
 //inicialização das funções
 void disp1(int n);
@@ -60,18 +63,19 @@ void disp2(int n);
 void L( int numTrem, int trilho);
 void* thread_function1(void* data);
 void* thread_function2(void* data);
+void* init_function(void* data);
+void* terminate_function(void* data);
 
 int main(int argc, char * argv[]){
   srand(time(NULL));
-
-  pthread_t thread1, thread2;
+  pthread_t init,terminate;
   pthread_mutex_init(&trilho3_mutex, NULL);
 
-  pthread_create(&thread1, NULL, thread_function1, NULL);
-  pthread_create(&thread2, NULL, thread_function2, NULL);
+  pthread_create(&init, NULL, init_function, NULL);
+  pthread_create(&terminate, NULL, terminate_function, NULL);
 
-  pthread_join(thread1, NULL);
-  pthread_join(thread2, NULL);
+  pthread_join(init, NULL);
+  pthread_join(terminate, NULL);
 
   return 0;
 }
@@ -79,28 +83,31 @@ int main(int argc, char * argv[]){
 void L( int numTrem, int trilho){
   if(numTrem == 1){
     disp1(trilho);
-    printf("%s%d\n", "trem 1 trilho,", trilho);
-    printf("velocidade = %f\n", 1/(v1+0.5)+1);
-    sleep(1/(v1+.5)+1);
+    //printf("%s%d\n", "trem 1 trilho,", trilho);
+    //printf("velocidade = %f\n", (v1+0.5)+1);
+    sleep(1/(v1+0.5)+1);
   }else{
     disp2(trilho);
-    printf("%s%d\n", "trem 2 trilho,", trilho);
-    printf("velocidade = %f\n", 1/(v2+0.5)+1);
-    sleep(1/(v2+.5)+1);
+    //printf("%s%d\n", "trem 2 trilho,", trilho);
+    //printf("velocidade = %f\n", (v2+0.5)+1);
+    sleep(1/(v2+0.5)+1);
   }
 }
 
 void* thread_function1(void* data){
     int num = (int) data;
-    while(1){
+    while(true){
         v1 = adc1.getFloatValue();
         L(1,1);
+
         v1 = adc1.getFloatValue();
         L(1,2);
+
         v1 = adc1.getFloatValue();
         pthread_mutex_lock(&trilho3_mutex);
         L(1,3);
         pthread_mutex_unlock(&trilho3_mutex);
+
         v1 = adc1.getFloatValue();
         L(1,4);
     }
@@ -108,13 +115,17 @@ void* thread_function1(void* data){
 
 void* thread_function2(void* data){
     int num = (int) data;
-    while(1){
+    while(true){
+
       v2 = adc2.getFloatValue();
       L(2,5);
+
       v2 = adc2.getFloatValue();
       L(2,6);
+
       v2 = adc2.getFloatValue();
       L(2,7);
+
       v2 = adc2.getFloatValue();
       pthread_mutex_lock(&trilho3_mutex);
       L(2,3);
@@ -122,7 +133,27 @@ void* thread_function2(void* data){
     }
 }
 
+void* init_function(void* data){
+  while(true){
+      pthread_create(&thread1, NULL, thread_function1, NULL);
+      pthread_create(&thread2, NULL, thread_function2, NULL);
 
+      pthread_join(thread1, NULL);
+      pthread_join(thread2, NULL);
+  }
+}
+void* terminate_function(void* data){
+  while(true){
+    val = bt.getValue();
+    if(val == "1"){
+      //std::cout<<"reset"<<endl;
+      pthread_cancel(thread1);
+      pthread_cancel(thread2);
+    }
+  }
+}
+
+//display 1
 void disp1(int n){
   char nc = std::to_string(n)[0];
   switch (nc){
@@ -177,7 +208,7 @@ void disp1(int n){
     break;
   }
 }
-
+//display 2
 void disp2(int n){
 char nc = std::to_string(n)[0];
   switch (nc){
