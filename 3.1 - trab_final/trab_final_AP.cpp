@@ -1,3 +1,5 @@
+#define MULTICAST_ADDR "225.0.0.37"
+
 #include <iostream>
 #include <pthread.h>
 #include <unistd.h>
@@ -5,53 +7,56 @@
 #include <sys/resource.h>
 #include <math.h>
 #include <errno.h>
-#include <string.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <stdio.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <unistd.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+#include <stdio.h>
 
 
+/*
+A1 - 47
+B1 - 27
+C1 - 49
+D1 - 48
+E1 - 61
+F1 - 46
+G1 - 65
 
-#define MULTICAST_ADDR "225.0.0.37"
-unsigned short port_rcv = 9702;
-unsigned short port_snd = 9802;
+A2 - 26
+B2 - 44
+C2 - 68
+D2 - 67
+E2 - 69
+F2 - 45
+G2 - 66
+*/
 
 
-pthread_t snd_thread, rcv_thread;
 
 //inicialização das funções
-void* snd_function(void* data);
-void* rcv_function(void* data);
+
+void* receber();
 
 int main(int argc, char * argv[]){
-  srand(time(NULL));
-
-  pthread_create(&snd_thread, NULL, snd_function, NULL);
-  pthread_create(&rcv_thread, NULL, rcv_function, NULL);
-
-  pthread_join(snd_thread, NULL);
-  pthread_join(rcv_thread, NULL);
-
-
+  receber();
 
   return 0;
 }
 
-void* rcv_function(void* data){
+void* receber(){
     int server_sockfd, client_sockfd;
-    socklen_t server_len;
+    size_t server_len;
     socklen_t client_len;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
     
     struct ip_mreq mreq;  // para endere�o multicast
     
- 
+    unsigned short porta = 9802;
     
     unlink("server_socket");  // remocao de socket antigo
     if ( (server_sockfd = socket(AF_INET, SOCK_DGRAM, 0) )  < 0  )  // cria um novo socket
@@ -61,13 +66,13 @@ void* rcv_function(void* data){
     }
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_address.sin_port = htons(port_rcv);
+    server_address.sin_port = htons(porta);
     
     
     server_len = sizeof(server_address);
     
     if(  bind(server_sockfd, (struct sockaddr *) &server_address, server_len) < 0 ){
-        perror("Bind error");
+        perror("Houve error no Bind");
 
     }
     
@@ -77,7 +82,6 @@ void* rcv_function(void* data){
     mreq.imr_interface.s_addr=htonl(INADDR_ANY);
     if (setsockopt(server_sockfd,IPPROTO_IP,IP_ADD_MEMBERSHIP,&mreq,sizeof(mreq)) < 0) {
         perror("setsockopt");
-        exit(1);
 
     }
     printf(" IPPROTO_IP = %d\n", IPPROTO_IP);
@@ -90,61 +94,18 @@ void* rcv_function(void* data){
         
         printf("Servidor esperando ...\n");
         
-        client_len = sizeof(client_address);        
-        if(recvfrom(server_sockfd, &valor, sizeof(valor),0, (struct sockaddr *) &server_address, &server_len) < 0 ){
+        client_len = sizeof(client_address);
+        if(recvfrom(server_sockfd, &valor, sizeof(valor),0,
+                    (struct sockaddr *) &client_address, &client_len) < 0 )
+        {
             perror(" erro no RECVFROM( )");
-            exit(1);
 
         }
-
-        struct in_addr ipAddr = server_address.sin_addr;
-        char str[INET_ADDRSTRLEN];
-		inet_ntop( AF_INET, &ipAddr, str, INET_ADDRSTRLEN);
-        printf("oi ...\n");
         printf(" Valor recebido foi = %lf %lf", valor[0], valor[1]);
         // close(server_sockfd);
         
     }
-}
 
-void* snd_function(void* data){
 
-  struct sockaddr_in addr;
-  int sockfd;
-  int len;
-  bool buffer_envia[8];
-
-  /* create what looks like an ordinary UDP socket */
-  sockfd=socket(AF_INET,SOCK_DGRAM,0);
-  if (sockfd < 0) {
-    perror("socket");
-    exit(1);
-  }
-
-  /* set up destination address */
-  memset(&addr,0,sizeof(addr));
-  addr.sin_family=AF_INET;
-  addr.sin_addr.s_addr=inet_addr(MULTICAST_ADDR);
-  addr.sin_port=htons(port_snd);
-
-  len = sizeof(addr);
-	while(1)
-	    {
-	        buffer_envia[0] = rand() % 2;
-	        buffer_envia[1] = rand() % 2;
-	        buffer_envia[2] = rand() % 2;
-	        buffer_envia[3] = rand() % 2;
-	        buffer_envia[4] = rand() % 2;
-	        buffer_envia[5] = rand() % 2;
-	        buffer_envia[6] = rand() % 2;
-	        buffer_envia[7] = rand() % 2;	        
-	        sendto(sockfd, &buffer_envia,sizeof(buffer_envia),0,(struct sockaddr *) &addr, len);
-	        printf(" Valor enviado na porta %d foi: %d:%d:%d:%d:%d:%d:%d:%d\n", port_snd, buffer_envia[0],buffer_envia[1],buffer_envia[2],buffer_envia[3],buffer_envia[4],buffer_envia[5],buffer_envia[6],buffer_envia[7]);
-	        sleep(1);
-	}
 
 }
-
-
-
-
